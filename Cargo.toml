@@ -2,7 +2,7 @@
 name = "parse-num"
 version = "0.1.0"
 edition = "2021"
-description = "Implementation of JavaScript-style parseInt() and parseFloat() functions in Rust"
+description = "JavaScript-style parseInt/parseFloat prefix parsing of strings for Rust"
 authors = [
     "Jan Max Meyer <jmm@phorward.de>"
 ]
