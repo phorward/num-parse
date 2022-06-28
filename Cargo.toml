@@ -1,0 +1,14 @@
+[package]
+name = "parse-num"
+version = "0.1.0"
+edition = "2021"
+description = "Implementation of JavaScript-style parseInt() and parseFloat() functions in Rust"
+authors = [
+    "Jan Max Meyer <jmm@phorward.de>"
+]
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num = "0.4"
