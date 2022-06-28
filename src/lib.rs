@@ -1,4 +1,4 @@
-//! JavaScript-style parseInt/parseFloat prefix parsing of strings for Rust
+//! JavaScript-style parseInt prefix parsing of strings for Rust
 
 use num;
 
@@ -102,12 +102,28 @@ pub fn parse_int<T: num::PrimInt + std::ops::Neg<Output = T>>(s: &str) -> T {
 }
 
 #[test]
-fn test() {
-    assert_eq!(parse_uint::<i64>("123hello"), 123i64);
-    assert_eq!(parse_uint::<i64>("    456hello"), 456i64);
-    assert_eq!(parse_uint::<i64>("  -789hello"), 0i64);
+fn test_parse_uint_i64() {
+    assert_eq!(parse_uint::<i64>(" 123hello "), 123i64);
+    //assert_eq!(parse_uint::<i64>(" 0xcafebabe "), 3405691582i64); //todo!
+    assert_eq!(parse_uint::<i64>(" 456hello "), 456i64);
+    assert_eq!(parse_uint::<i64>(" -789hello "), 0i64);
+}
 
+#[test]
+fn test_parse_uint_base16_i64() {
+    assert_eq!(parse_uint_with_radix::<i64>("CAFEBABE", 16), 3405691582i64);
+    assert_eq!(parse_uint_with_radix::<i64>("  cafebabeyeah", 16), 3405691582i64);
+}
+
+#[test]
+fn test_parse_int_i64() {
     assert_eq!(parse_int::<i64>("123hello"), 123i64);
     assert_eq!(parse_int::<i64>("    456hello"), 456i64);
     assert_eq!(parse_int::<i64>("  -789hello"), -789i64);
+}
+
+#[test]
+fn test_parse_int_base16_i64() {
+    assert_eq!(parse_int_with_radix::<i64>("  -CAFEBABE", 16), -3405691582i64);
+    assert_eq!(parse_int_with_radix::<i64>("  -cafebabeyeah", 16), -3405691582i64);
 }
