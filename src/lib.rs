@@ -6,9 +6,10 @@ use num;
 fn parse_uint_internal<T: num::PrimInt>(
     chars: &mut dyn Iterator<Item = char>,
     mut radix: Option<u32>,
-) -> T {
+) -> Option<T> {
     let mut first_zero = false;
     let mut ret = T::zero();
+    let mut any = false;
 
     while let Some(ch) = chars.next() {
         match ch {
@@ -22,6 +23,7 @@ fn parse_uint_internal<T: num::PrimInt>(
                     Some(digit) => {
                         ret = ret.checked_mul(&T::from(radix).unwrap()).unwrap();
                         ret = ret.checked_add(&T::from(digit).unwrap()).unwrap();
+                        any = true;
                     }
                     None => break,
                 }
@@ -29,14 +31,18 @@ fn parse_uint_internal<T: num::PrimInt>(
         }
     }
 
-    ret
+    if any {
+        Some(ret)
+    } else {
+        None
+    }
 }
 
 /// Parse uint values from an iterator with a given radix.
 pub fn parse_uint_from_iter_with_radix<T: num::PrimInt>(
     chars: &mut dyn Iterator<Item = char>,
     radix: Option<u32>,
-) -> T {
+) -> Option<T> {
     let mut chars = chars.peekable();
 
     while let Some(ch) = chars.peek() {
@@ -52,7 +58,7 @@ pub fn parse_uint_from_iter_with_radix<T: num::PrimInt>(
 }
 
 /// Parse decimal uint values from an iterator.
-pub fn parse_uint_from_iter<T: num::PrimInt>(chars: &mut dyn Iterator<Item = char>) -> T {
+pub fn parse_uint_from_iter<T: num::PrimInt>(chars: &mut dyn Iterator<Item = char>) -> Option<T> {
     parse_uint_from_iter_with_radix(chars, None)
 }
 
@@ -60,7 +66,7 @@ pub fn parse_uint_from_iter<T: num::PrimInt>(chars: &mut dyn Iterator<Item = cha
 pub fn parse_int_from_iter_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(
     chars: &mut dyn Iterator<Item = char>,
     radix: Option<u32>,
-) -> T {
+) -> Option<T> {
     let mut chars = chars.peekable();
     let mut neg = false;
 
@@ -78,76 +84,85 @@ pub fn parse_int_from_iter_with_radix<T: num::PrimInt + std::ops::Neg<Output = T
         break;
     }
 
-    let ret = parse_uint_internal::<T>(&mut chars, radix);
-
-    if neg {
-        -ret
+    if let Some(ret) = parse_uint_internal::<T>(&mut chars, radix) {
+        if neg {
+            Some(-ret)
+        } else {
+            Some(ret)
+        }
     } else {
-        ret
+        None
     }
 }
 
 /// Parse decimal int values from an iterator.
 pub fn parse_int_from_iter<T: num::PrimInt + std::ops::Neg<Output = T>>(
     chars: &mut dyn Iterator<Item = char>,
-) -> T {
+) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(chars, None)
 }
 
 /// Parse uint values from a &str with a given radix.
-pub fn parse_uint_with_radix<T: num::PrimInt>(s: &str, radix: u32) -> T {
+pub fn parse_uint_with_radix<T: num::PrimInt>(s: &str, radix: u32) -> Option<T> {
     parse_uint_from_iter_with_radix::<T>(&mut s.chars(), Some(radix))
 }
 
 /// Parse decimal uint values from a &str.
-pub fn parse_uint<T: num::PrimInt>(s: &str) -> T {
+pub fn parse_uint<T: num::PrimInt>(s: &str) -> Option<T> {
     parse_uint_from_iter_with_radix::<T>(&mut s.chars(), None)
 }
 
 /// Parse int values from a &str with a given radix.
-pub fn parse_int_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(s: &str, radix: u32) -> T {
+pub fn parse_int_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(
+    s: &str,
+    radix: u32,
+) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(&mut s.chars(), Some(radix))
 }
 
 /// Parse decimal int values from a &str.
-pub fn parse_int<T: num::PrimInt + std::ops::Neg<Output = T>>(s: &str) -> T {
+pub fn parse_int<T: num::PrimInt + std::ops::Neg<Output = T>>(s: &str) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(&mut s.chars(), None)
 }
 
 #[test]
 fn test_parse_uint_i64() {
-    assert_eq!(parse_uint::<i64>(" 123hello "), 123i64);
-    assert_eq!(parse_uint::<i64>(" 0xcafebabe "), 3405691582i64);
-    assert_eq!(parse_uint::<i64>(" 0x "), 0);
-    assert_eq!(parse_uint::<i64>(" 456hello "), 456i64);
-    assert_eq!(parse_uint::<i64>(" -789hello "), 0i64);
+    assert_eq!(parse_uint::<i64>(" 123hello "), Some(123i64));
+    assert_eq!(parse_uint::<i64>(" 0xcafebabe "), Some(3405691582i64));
+    assert_eq!(parse_uint::<i64>(" 0x "), None);
+    assert_eq!(parse_uint::<i64>(" 456hello "), Some(456i64));
+    assert_eq!(parse_uint::<i64>(" -789hello "), None);
 }
 
 #[test]
 fn test_parse_uint_base16_i64() {
-    assert_eq!(parse_uint_with_radix::<i64>("CAFEBABE", 16), 3405691582i64);
+    assert_eq!(
+        parse_uint_with_radix::<i64>("CAFEBABE", 16),
+        Some(3405691582i64)
+    );
     assert_eq!(
         parse_uint_with_radix::<i64>("  cafebabeyeah", 16),
-        3405691582i64
+        Some(3405691582i64)
     );
+    assert_eq!(parse_int_with_radix::<i64>("  0xcafebabeyeah", 16), None);
 }
 
 #[test]
 fn test_parse_int_i64() {
-    assert_eq!(parse_int::<i64>("123hello"), 123i64);
-    assert_eq!(parse_int::<i64>("    456hello"), 456i64);
-    assert_eq!(parse_int::<i64>("  -789hello"), -789i64);
+    assert_eq!(parse_int::<i64>("123hello"), Some(123i64));
+    assert_eq!(parse_int::<i64>("    456hello"), Some(456i64));
+    assert_eq!(parse_int::<i64>("  -789hello"), Some(-789i64));
 }
 
 #[test]
 fn test_parse_int_base16_i64() {
     assert_eq!(
         parse_int_with_radix::<i64>("  -CAFEBABE", 16),
-        -3405691582i64
+        Some(-3405691582i64)
     );
     assert_eq!(
         parse_int_with_radix::<i64>("  -cafebabeyeah", 16),
-        -3405691582i64
+        Some(-3405691582i64)
     );
-    assert_eq!(parse_int_with_radix::<i64>("  0xcafebabeyeah", 16), 0);
+    assert_eq!(parse_int_with_radix::<i64>("  -0xcafebabeyeah", 16), None);
 }
