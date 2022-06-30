@@ -1,17 +1,31 @@
-//! JavaScript-style parseInt prefix parsing of strings for Rust
+//! JavaScript-style parseInt-like parsing of numbers from strings in Rust
 
 use num;
 
+/// Trait defining an iterator that implements a peek method on its own.
+pub trait PeekableIterator: std::iter::Iterator {
+    fn peek(&mut self) -> Option<&Self::Item>;
+}
+
+/// Implement PeekableIterator for all Peekable<Iterator>
+impl<I: std::iter::Iterator> PeekableIterator for std::iter::Peekable<I> {
+    fn peek(&mut self) -> Option<&Self::Item> {
+        std::iter::Peekable::peek(self)
+    }
+}
+
 /// Internal function to parse uint values from a char-iterator with a given radix.
-fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive>(
-    chars: &mut dyn Iterator<Item = char>,
+pub fn parse_uint_internal<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
+>(
+    chars: &mut dyn PeekableIterator<Item = char>,
     mut radix: Option<u32>,
 ) -> Option<T> {
     let mut first_zero = false;
     let mut ret = T::zero();
     let mut any = false;
 
-    while let Some(ch) = chars.next() {
+    while let Some(ch) = chars.peek() {
         match ch {
             '0' if !first_zero => {
                 first_zero = true;
@@ -29,6 +43,8 @@ fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num
                 }
             }
         }
+
+        chars.next();
     }
 
     if any {
@@ -42,11 +58,9 @@ fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num
 pub fn parse_uint_from_iter_with_radix<
     T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
 >(
-    chars: &mut dyn Iterator<Item = char>,
+    chars: &mut dyn PeekableIterator<Item = char>,
     radix: Option<u32>,
 ) -> Option<T> {
-    let mut chars = chars.peekable();
-
     while let Some(ch) = chars.peek() {
         if ch.is_whitespace() {
             chars.next();
@@ -56,14 +70,14 @@ pub fn parse_uint_from_iter_with_radix<
         break;
     }
 
-    parse_uint_internal::<T>(&mut chars, radix)
+    parse_uint_internal::<T>(chars, radix)
 }
 
 /// Parse decimal uint values from an iterator.
 pub fn parse_uint_from_iter<
     T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
 >(
-    chars: &mut dyn Iterator<Item = char>,
+    chars: &mut dyn PeekableIterator<Item = char>,
 ) -> Option<T> {
     parse_uint_from_iter_with_radix(chars, None)
 }
@@ -72,10 +86,9 @@ pub fn parse_uint_from_iter<
 pub fn parse_int_from_iter_with_radix<
     T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
 >(
-    chars: &mut dyn Iterator<Item = char>,
+    chars: &mut dyn PeekableIterator<Item = char>,
     radix: Option<u32>,
 ) -> Option<T> {
-    let mut chars = chars.peekable();
     let mut neg = false;
 
     while let Some(ch) = chars.peek() {
@@ -92,7 +105,7 @@ pub fn parse_int_from_iter_with_radix<
         break;
     }
 
-    if let Some(ret) = parse_uint_internal::<T>(&mut chars, radix) {
+    if let Some(ret) = parse_uint_internal::<T>(chars, radix) {
         if neg {
             Some(-ret)
         } else {
@@ -107,7 +120,7 @@ pub fn parse_int_from_iter_with_radix<
 pub fn parse_int_from_iter<
     T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
 >(
-    chars: &mut dyn Iterator<Item = char>,
+    chars: &mut dyn PeekableIterator<Item = char>,
 ) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(chars, None)
 }
@@ -119,14 +132,14 @@ pub fn parse_uint_with_radix<
     s: &str,
     radix: u32,
 ) -> Option<T> {
-    parse_uint_from_iter_with_radix::<T>(&mut s.chars(), Some(radix))
+    parse_uint_from_iter_with_radix::<T>(&mut s.chars().peekable(), Some(radix))
 }
 
 /// Parse decimal uint values from a &str.
 pub fn parse_uint<T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive>(
     s: &str,
 ) -> Option<T> {
-    parse_uint_from_iter_with_radix::<T>(&mut s.chars(), None)
+    parse_uint_from_iter_with_radix::<T>(&mut s.chars().peekable(), None)
 }
 
 /// Parse int values from a &str with a given radix.
@@ -136,7 +149,7 @@ pub fn parse_int_with_radix<
     s: &str,
     radix: u32,
 ) -> Option<T> {
-    parse_int_from_iter_with_radix::<T>(&mut s.chars(), Some(radix))
+    parse_int_from_iter_with_radix::<T>(&mut s.chars().peekable(), Some(radix))
 }
 
 /// Parse decimal int values from a &str.
@@ -145,7 +158,7 @@ pub fn parse_int<
 >(
     s: &str,
 ) -> Option<T> {
-    parse_int_from_iter_with_radix::<T>(&mut s.chars(), None)
+    parse_int_from_iter_with_radix::<T>(&mut s.chars().peekable(), None)
 }
 
 #[test]
