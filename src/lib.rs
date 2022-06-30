@@ -3,7 +3,7 @@
 use num;
 
 /// Internal function to parse uint values from a char-iterator with a given radix.
-fn parse_uint_internal<T: num::PrimInt>(
+fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive>(
     chars: &mut dyn Iterator<Item = char>,
     mut radix: Option<u32>,
 ) -> Option<T> {
@@ -21,8 +21,8 @@ fn parse_uint_internal<T: num::PrimInt>(
                 let radix = radix.unwrap_or(10);
                 match dig.to_digit(radix) {
                     Some(digit) => {
-                        ret = ret.checked_mul(&T::from(radix).unwrap()).unwrap();
-                        ret = ret.checked_add(&T::from(digit).unwrap()).unwrap();
+                        ret = ret.checked_mul(&T::from_u32(radix).unwrap()).unwrap();
+                        ret = ret.checked_add(&T::from_u32(digit).unwrap()).unwrap();
                         any = true;
                     }
                     None => break,
@@ -39,7 +39,9 @@ fn parse_uint_internal<T: num::PrimInt>(
 }
 
 /// Parse uint values from an iterator with a given radix.
-pub fn parse_uint_from_iter_with_radix<T: num::PrimInt>(
+pub fn parse_uint_from_iter_with_radix<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
+>(
     chars: &mut dyn Iterator<Item = char>,
     radix: Option<u32>,
 ) -> Option<T> {
@@ -58,12 +60,18 @@ pub fn parse_uint_from_iter_with_radix<T: num::PrimInt>(
 }
 
 /// Parse decimal uint values from an iterator.
-pub fn parse_uint_from_iter<T: num::PrimInt>(chars: &mut dyn Iterator<Item = char>) -> Option<T> {
+pub fn parse_uint_from_iter<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
+>(
+    chars: &mut dyn Iterator<Item = char>,
+) -> Option<T> {
     parse_uint_from_iter_with_radix(chars, None)
 }
 
 /// Parse int values from an iterator with a given radix.
-pub fn parse_int_from_iter_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(
+pub fn parse_int_from_iter_with_radix<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
+>(
     chars: &mut dyn Iterator<Item = char>,
     radix: Option<u32>,
 ) -> Option<T> {
@@ -96,24 +104,35 @@ pub fn parse_int_from_iter_with_radix<T: num::PrimInt + std::ops::Neg<Output = T
 }
 
 /// Parse decimal int values from an iterator.
-pub fn parse_int_from_iter<T: num::PrimInt + std::ops::Neg<Output = T>>(
+pub fn parse_int_from_iter<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
+>(
     chars: &mut dyn Iterator<Item = char>,
 ) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(chars, None)
 }
 
 /// Parse uint values from a &str with a given radix.
-pub fn parse_uint_with_radix<T: num::PrimInt>(s: &str, radix: u32) -> Option<T> {
+pub fn parse_uint_with_radix<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
+>(
+    s: &str,
+    radix: u32,
+) -> Option<T> {
     parse_uint_from_iter_with_radix::<T>(&mut s.chars(), Some(radix))
 }
 
 /// Parse decimal uint values from a &str.
-pub fn parse_uint<T: num::PrimInt>(s: &str) -> Option<T> {
+pub fn parse_uint<T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive>(
+    s: &str,
+) -> Option<T> {
     parse_uint_from_iter_with_radix::<T>(&mut s.chars(), None)
 }
 
 /// Parse int values from a &str with a given radix.
-pub fn parse_int_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(
+pub fn parse_int_with_radix<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
+>(
     s: &str,
     radix: u32,
 ) -> Option<T> {
@@ -121,7 +140,11 @@ pub fn parse_int_with_radix<T: num::PrimInt + std::ops::Neg<Output = T>>(
 }
 
 /// Parse decimal int values from a &str.
-pub fn parse_int<T: num::PrimInt + std::ops::Neg<Output = T>>(s: &str) -> Option<T> {
+pub fn parse_int<
+    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive + num::Signed,
+>(
+    s: &str,
+) -> Option<T> {
     parse_int_from_iter_with_radix::<T>(&mut s.chars(), None)
 }
 
