@@ -2,7 +2,7 @@
 name = "num-parse"
 version = "0.1.0"
 edition = "2021"
-description = "JavaScript-style parseInt-like parsing of numbers from strings in Rust"
+description = "Generic, JavaScript-like parseInt() functions for Rust."
 authors = [
     "Jan Max Meyer <jmm@phorward.de>"
 ]
