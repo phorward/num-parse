@@ -7,7 +7,6 @@
     Generic, JavaScript-like parseInt() functions for Rust.
 */
 
-
 mod parseint;
 pub use parseint::*;
 

@@ -13,12 +13,12 @@ Likewise in JavaScript, a `parseFloat()`-like implementation for float-types is 
 ```rust
 use num_parse::*;
 
-assert_eq!(parse_uint::<i32>("+123 as i32 "), Some(123i32));
+assert_eq!(parse_uint::<i32>("123 as i32 "), Some(123i32));
 assert_eq!(parse_int::<i32>(" -123 as i32 "), Some(-123i32));
-assert_eq!(parse_uint::<i64>("+123 as i64 "), Some(123i64));
+assert_eq!(parse_uint::<i64>("123 as i64 "), Some(123i64));
 assert_eq!(parse_int::<i64>(" -123 as i64 "), Some(-123i64));
 
 assert_eq!(parse_int::<i64>(" - 1 is invalid "), None);
-assert_eq!(parse_uint::<u64>(" -123 as u64, parse_int() not available for this type "), Some(-123u64));
-assert_eq!(parse_uint::<usize>(" 0xcafebabe triggers hex-mode parsing "), Some(-123i64));
+assert_eq!(parse_uint::<u64>(" -123 as u64, parse_int() not available for this type "), None);
+assert_eq!(parse_uint::<usize>(" 0xcafebabe triggers hex-mode parsing "), Some(3405691582usize));
 ```
