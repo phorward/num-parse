@@ -4,9 +4,7 @@
 
 /*! num-parse
 
-    A programming language designed for ad-hoc parsing.
-
-    Visit [https://tokay.dev](https://tokay.dev) for more information.
+    Generic, JavaScript-like parseInt() functions for Rust.
 */
 
 
