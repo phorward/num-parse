@@ -63,6 +63,9 @@ pub fn parse_uint_from_iter_with_radix<
             chars.next();
             continue;
         }
+        else if *ch == '+' {
+            chars.next();
+        }
 
         break;
     }
@@ -210,9 +213,9 @@ fn test_parse_int_base16_i64() {
 
 #[test]
 fn test_readme() {
-    assert_eq!(parse_uint::<i32>("123 as i32 "), Some(123i32));
+    assert_eq!(parse_uint::<i32>("+123 as i32 "), Some(123i32));
     assert_eq!(parse_int::<i32>(" -123 as i32 "), Some(-123i32));
-    assert_eq!(parse_uint::<i64>("123 as i64 "), Some(123i64));
+    assert_eq!(parse_uint::<i64>("+123 as i64 "), Some(123i64));
     assert_eq!(parse_int::<i64>(" -123 as i64 "), Some(-123i64));
 
     assert_eq!(parse_int::<i64>(" - 1 is invalid "), None);
