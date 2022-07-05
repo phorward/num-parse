@@ -1,7 +1,7 @@
 # num-parse
 
-[![Build status](https://github.com/phorward/num-parse/workflows/main.yml/badge.svg)](https://github.com/phorward/num-parse/actions/workflows/main.yml)
-[![docs.rs](https://img.shields.io/docsrs/num-parse)](https://docs.rs/num-parse/latest/num-parse/)
+[![Build status](https://github.com/phorward/num-parse/actions/workflows/main.yml/badge.svg)](https://github.com/phorward/num-parse/actions/workflows/main.yml)
+[![docs.rs](https://img.shields.io/docsrs/num-parse)](https://docs.rs/num-parse/latest/num_parse/)
 [![crates.io](https://img.shields.io/crates/v/num-parse)](https://crates.io/crates/num-parse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
