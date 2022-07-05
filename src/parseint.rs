@@ -3,9 +3,7 @@ use super::*;
 use num;
 
 /// Internal function to parse uint values from a char-iterator with a given radix.
-pub fn parse_uint_internal<
-    T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive,
->(
+fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num::FromPrimitive>(
     chars: &mut dyn PeekableIterator<Item = char>,
     mut radix: Option<u32>,
 ) -> Option<T> {
@@ -62,8 +60,7 @@ pub fn parse_uint_from_iter_with_radix<
         if whitespace && ch.is_whitespace() {
             chars.next();
             continue;
-        }
-        else if *ch == '+' {
+        } else if *ch == '+' {
             chars.next();
         }
 
