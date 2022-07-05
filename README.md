@@ -1,5 +1,10 @@
 # num-parse
 
+[![Build status](https://github.com/phorward/num-parse/workflows/main.yml/badge.svg)](https://github.com/phorward/num-parse/actions/workflows/main.yml)
+[![docs.rs](https://img.shields.io/docsrs/num-parse)](https://docs.rs/num-parse/latest/num-parse/)
+[![crates.io](https://img.shields.io/crates/v/num-parse)](https://crates.io/crates/num-parse)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 Generic, JavaScript-like parseInt() functions for Rust.
 
 This crate is intended to provide a fast and generic `parseInt()`-like implementation for Rust, which mostly follows the specification described in the [MDN parseInt() documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt).
