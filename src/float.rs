@@ -15,16 +15,19 @@ std::num, but use a similar algorithm.
 use super::*;
 use num;
 
-pub fn parse_float_from_iter<T: num::Float + std::str::FromStr>(chars: &mut dyn PeekableIterator<Item = char>, whitespace: bool) -> Option<T> {
-    let mut has_int = false;
-    let mut has_fract = false;
-    let mut str = String::with_capacity(64);
+pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
+    chars: &mut dyn PeekableIterator<Item = char>,
+    whitespace: bool,
+) -> Option<T> {
+    let mut neg = false;
+    let mut int: Option<u32> = None;
+    let mut dec: Option<u32> = None;
 
     // Skip over whitespace
     if whitespace {
         while let Some(ch) = chars.peek() {
             if !ch.is_whitespace() {
-                break
+                break;
             }
 
             chars.next();
@@ -34,44 +37,71 @@ pub fn parse_float_from_iter<T: num::Float + std::str::FromStr>(chars: &mut dyn 
     // Match sign
     match chars.peek() {
         Some(ch) if *ch == '-' || *ch == '+' => {
-            str.push(chars.next().unwrap());
+            neg = chars.next().unwrap() == '-';
         }
         _ => {}
     }
 
     // Integer part (optional)
-    while let Some(ch) = chars.peek() {
-        if !ch.is_numeric() {
-            break
-        }
+    while let Some(dig) = chars.peek() {
+        int = match dig.to_digit(10) {
+            Some(digit) => {
+                let mut int = int.unwrap_or(0);
 
-        has_int = true;
-        str.push(chars.next().unwrap());
+                int = int.checked_mul(10).unwrap();
+                int = int.checked_add(digit).unwrap();
+
+                chars.next();
+                Some(int)
+            }
+            None => break,
+        }
     }
 
-    // Decimal point
+    // Decimal point (mandatory)
     match chars.peek() {
         Some(ch) if *ch == '.' => {
-            str.push(chars.next().unwrap());
+            chars.next();
         }
-        _ => {}
+        _ => return None,
     }
 
-    // Fractional part (optional)
-    while let Some(ch) = chars.peek() {
-        if !ch.is_numeric() {
-            break
+    // Decimal part (optional)
+    while let Some(dig) = chars.peek() {
+        dec = match dig.to_digit(10) {
+            Some(digit) => {
+                let mut dec = dec.unwrap_or(0);
+
+                dec = dec.checked_mul(10).unwrap();
+                dec = dec.checked_add(digit).unwrap();
+
+                chars.next();
+                Some(dec)
+            }
+            None => break,
         }
-
-        has_fract = true;
-        str.push(chars.next().unwrap());
     }
 
-    if !has_int && !has_fract {
-        return None;
+    if int.is_some() || dec.is_some() {
+        let int = T::from_u32(int.unwrap_or(0)).unwrap();
+        let dec = T::from_u32(dec.unwrap_or(0)).unwrap();
+        let ten = T::from_u32(10).unwrap();
+
+        let dec = dec
+            / num::pow::pow(
+                ten,
+                std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count(),
+            );
+
+        let ret = int + dec;
+
+        return if neg { Some(-ret) } else { Some(ret) };
     }
+
+    None
 
     // Exponential notation
+    /*
     match chars.peek() {
         Some('e') | Some('E') => {
             let mut exp = String::with_capacity(10);
@@ -101,18 +131,16 @@ pub fn parse_float_from_iter<T: num::Float + std::str::FromStr>(chars: &mut dyn 
     }
 
     str.parse::<T>().ok()
+    */
 }
 
 /// Parse decimal int values from a &str.
-pub fn parse_float<
-    T: num::Float + std::str::FromStr
->(
-    s: &str,
-) -> Option<T> {
+pub fn parse_float<T: num::Float + num::FromPrimitive>(s: &str) -> Option<T> {
     parse_float_from_iter::<T>(&mut s.chars().peekable(), true)
 }
 
 #[test]
 fn test_parse_float() {
     assert_eq!(parse_float::<f64>(" -123.hello "), Some(-123f64));
+    assert_eq!(parse_float::<f64>(" -13.37.hello "), Some(-13.37f64));
 }

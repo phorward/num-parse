@@ -7,10 +7,10 @@
     Generic, JavaScript-like parseInt() functions for Rust.
 */
 
-mod int;
 mod float;
-pub use int::*;
+mod int;
 pub use float::*;
+pub use int::*;
 
 /// Trait defining an iterator that implements a peek method on its own.
 pub trait PeekableIterator: std::iter::Iterator {
