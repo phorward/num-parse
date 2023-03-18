@@ -1,10 +1,10 @@
 // num-parse
-// Copyright © 2022 by Jan Max Meyer, Phorward Software Technologies.
+// Copyright © 2023 by Jan Max Meyer, Phorward Software Technologies.
 // Licensed under the MIT license. See LICENSE for more information.
 
 /*! num-parse
 
-    Generic, JavaScript-like parseInt() functions for Rust.
+    parseInt() and parseFloat() as known from JavaScript, but generic, and in Rust!
 */
 
 mod float;

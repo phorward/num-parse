@@ -1,8 +1,8 @@
 [package]
 name = "num-parse"
-version = "0.1.2"
+version = "0.2"
 edition = "2021"
-description = "Generic, JavaScript-like parseInt() functions for Rust."
+description = "parseInt() and parseFloat() as known from JavaScript, but generic, and in Rust"
 authors = [
     "Jan Max Meyer <jmm@phorward.de>"
 ]
@@ -13,6 +13,9 @@ categories = [
 ]
 keywords = [
     "parseint",
+    "parsefloat",
+    "javascript",
+    "ecmascript",
     "numbers"
 ]
 

@@ -1,20 +1,14 @@
-//! JavaScript-style parseFloat-like parsing of numbers from strings in Rust.
-
-/*
-This is a naive approach for a parse_float() that was implemented in Tokay already.
-
-It just checks for a valid character order, collects each character and afterwards uses String::parse<T>() to
-parse the specific string. This isn't nice. A better approach worth for num-parse would be to parse the characters
-collected directly into a float.
-
-A solution for this can already be found in https://doc.rust-lang.org/src/core/num/dec2flt/parse.rs.html.
-Maybe we can borrow this and use it together with a PeekableIterator. It should not be as performant like with
-std::num, but use a similar algorithm.
-*/
+/*! Generic, JavaScript-like parseFloat() function for parsing floating point numbers
+from any character-emitting resource. */
 
 use super::*;
 use num;
 
+
+/** Parse float values from a PeekableIterator.
+
+Trailing `whitespace` is accepted, when set to `true`.
+*/
 pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
     chars: &mut dyn PeekableIterator<Item = char>,
     whitespace: bool,
@@ -57,7 +51,7 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
         }
     }
 
-    // Decimal point (mandatory)
+    // Decimal point (this *is* mandatory!)
     match chars.peek() {
         Some(ch) if *ch == '.' => {
             chars.next();
@@ -80,11 +74,12 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
         }
     }
 
-    // Either integer or decimal part must be given
+    // Either integer or decimal part must be given, otherwise reject
     if int.is_none() && dec.is_none() {
         return None;
     }
 
+    // Turn integer and decimal part into floating point number
     let int = T::from_u32(int.unwrap_or(0)).unwrap();
     let dec = T::from_u32(dec.unwrap_or(0)).unwrap();
     let ten = T::from_u32(10).unwrap();
@@ -92,7 +87,7 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
     let mut precision = std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count();
     let mut ret = int + dec / num::pow::pow(ten, precision);
 
-    // Exponential notation provided?
+    // Parse optionally provided exponential notation
     match chars.peek() {
         Some('e') | Some('E') => {
             chars.next();
@@ -138,11 +133,13 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
         _ => {}
     }
 
+    // Round to fit precision
     if precision > 0 {
         let factor = T::from(10u64.pow(precision as u32)).unwrap();
         ret = (ret * factor).round() / factor;
     }
 
+    // Negate when necessary
     if neg {
         Some(-ret)
     } else {
@@ -150,7 +147,7 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
     }
 }
 
-/// Parse decimal int values from a &str.
+/// Parse float values from a &str, ignoring trailing whitespace.
 pub fn parse_float<T: num::Float + num::FromPrimitive>(s: &str) -> Option<T> {
     parse_float_from_iter::<T>(&mut s.chars().peekable(), true)
 }
