@@ -48,8 +48,7 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
             Some(digit) => {
                 let mut int = int.unwrap_or(0);
 
-                int = int.checked_mul(10).unwrap();
-                int = int.checked_add(digit).unwrap();
+                int = int * 10 + digit;
 
                 chars.next();
                 Some(int)
@@ -72,8 +71,7 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
             Some(digit) => {
                 let mut dec = dec.unwrap_or(0);
 
-                dec = dec.checked_mul(10).unwrap();
-                dec = dec.checked_add(digit).unwrap();
+                dec = dec * 10 + digit;
 
                 chars.next();
                 Some(dec)
@@ -82,56 +80,74 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
         }
     }
 
-    if int.is_some() || dec.is_some() {
-        let int = T::from_u32(int.unwrap_or(0)).unwrap();
-        let dec = T::from_u32(dec.unwrap_or(0)).unwrap();
-        let ten = T::from_u32(10).unwrap();
-
-        let dec = dec
-            / num::pow::pow(
-                ten,
-                std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count(),
-            );
-
-        let ret = int + dec;
-
-        return if neg { Some(-ret) } else { Some(ret) };
+    // Either integer or decimal part must be given
+    if int.is_none() && dec.is_none() {
+        return None;
     }
 
-    None
+    let int = T::from_u32(int.unwrap_or(0)).unwrap();
+    let dec = T::from_u32(dec.unwrap_or(0)).unwrap();
+    let ten = T::from_u32(10).unwrap();
 
-    // Exponential notation
-    /*
+    let mut precision = std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count();
+    let mut ret = int + dec / num::pow::pow(ten, precision);
+
+    // Exponential notation provided?
     match chars.peek() {
         Some('e') | Some('E') => {
-            let mut exp = String::with_capacity(10);
-            exp.push(chars.next().unwrap());
+            chars.next();
 
-            let mut have_sign = false;
-            let mut have_digs = false;
-            while let Some(ch) = chars.peek() {
-                match ch {
-                    '+' | '-' if !have_sign => {
-                        have_sign = true;
-                    }
-                    ch if ch.is_numeric() => {
-                        have_digs = true;
-                    }
-                    _ => break
+            let mut neg = false;
+
+            match chars.peek() {
+                Some(ch) if *ch == '-' || *ch == '+' => {
+                    neg = chars.next().unwrap() == '-';
+                    precision += 1;
                 }
-
-                exp.push(chars.next().unwrap());
+                _ => {}
             }
 
-            if have_digs {
-                str.push_str(&exp);
+            let mut exp: u32 = 0;
+
+            while let Some(dig) = chars.peek() {
+                match dig.to_digit(10) {
+                    Some(digit) => {
+                        exp = exp * 10;
+                        exp = exp + digit;
+
+                        chars.next();
+                    }
+                    None => break,
+                }
+            }
+
+            if neg {
+                precision += exp as usize;
+            }
+
+            if exp != 0 {
+                let exp = num::pow::pow(ten, exp as usize);
+
+                if neg {
+                    ret = ret / exp;
+                } else {
+                    ret = ret * exp;
+                }
             }
         }
         _ => {}
     }
 
-    str.parse::<T>().ok()
-    */
+    if precision > 0 {
+        let factor = T::from(10u64.pow(precision as u32)).unwrap();
+        ret = (ret * factor).round() / factor;
+    }
+
+    if neg {
+        Some(-ret)
+    } else {
+        Some(ret)
+    }
 }
 
 /// Parse decimal int values from a &str.
@@ -143,4 +159,10 @@ pub fn parse_float<T: num::Float + num::FromPrimitive>(s: &str) -> Option<T> {
 fn test_parse_float() {
     assert_eq!(parse_float::<f64>(" -123.hello "), Some(-123f64));
     assert_eq!(parse_float::<f64>(" -13.37.hello "), Some(-13.37f64));
+    assert_eq!(parse_float::<f64>(" -13.37e2.hello "), Some(-1337f64));
+    assert_eq!(parse_float::<f64>(" -13.37e-2.hello "), Some(-0.1337f64));
+    assert_eq!(
+        parse_float::<f64>(" -13.37e-16 "),
+        Some(-0.000000000000001337f64)
+    );
 }
