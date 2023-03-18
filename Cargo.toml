@@ -1,6 +1,6 @@
 [package]
 name = "num-parse"
-version = "0.2"
+version = "0.2.0"
 edition = "2021"
 description = "parseInt() and parseFloat() as known from JavaScript, but generic, and in Rust"
 authors = [

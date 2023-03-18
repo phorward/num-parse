@@ -4,7 +4,6 @@ from any character-emitting resource. */
 use super::*;
 use num;
 
-
 /** Parse float values from a PeekableIterator.
 
 Trailing `whitespace` is accepted, when set to `true`.
