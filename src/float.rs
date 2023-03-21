@@ -8,7 +8,7 @@ use num;
 
 Trailing `whitespace` is accepted, when set to `true`.
 */
-pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
+pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Display>(
     chars: &mut dyn PeekableIterator<Item = char>,
     whitespace: bool,
 ) -> Option<T> {
@@ -83,8 +83,9 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
     let dec = T::from_u32(dec.unwrap_or(0)).unwrap();
     let ten = T::from_u32(10).unwrap();
 
-    let mut precision = std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count();
-    let mut ret = int + dec / num::pow::pow(ten, precision);
+    let mut precision =
+        std::iter::successors(Some(dec), |&n| (n >= ten).then(|| n / ten)).count() as u32;
+    let mut ret = int + dec / ten.powi(precision as i32);
 
     // Parse optionally provided exponential notation
     match chars.peek() {
@@ -96,7 +97,6 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
             match chars.peek() {
                 Some(ch) if *ch == '-' || *ch == '+' => {
                     neg = chars.next().unwrap() == '-';
-                    precision += 1;
                 }
                 _ => {}
             }
@@ -115,28 +115,25 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
                 }
             }
 
-            if neg {
-                precision += exp as usize;
-            }
+            //println!("exp   ret = {}, neg = {}, exp = {}", ret, neg, exp);
 
-            if exp != 0 {
-                let exp = num::pow::pow(ten, exp as usize);
-
-                if neg {
-                    ret = ret / exp;
+            ret = ret
+                * ten.powi(if neg {
+                    precision += exp;
+                    -(exp as i32)
                 } else {
-                    ret = ret * exp;
-                }
-            }
+                    exp as i32
+                });
         }
         _ => {}
     }
 
-    // Round to fit precision
-    if precision > 0 {
-        let factor = T::from(10u64.pow(precision as u32)).unwrap();
-        ret = (ret * factor).round() / factor;
-    }
+    //println!("round ret = {}, precision = {}", ret, precision);
+
+    let precision = T::from_u32(precision).unwrap();
+    ret = (ret * ten.powf(precision)).round() / ten.powf(precision);
+
+    //println!("neg   ret = {}, neg = {}", ret, neg);
 
     // Negate when necessary
     if neg {
@@ -147,12 +144,28 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive>(
 }
 
 /// Parse float values from a &str, ignoring trailing whitespace.
-pub fn parse_float<T: num::Float + num::FromPrimitive>(s: &str) -> Option<T> {
+pub fn parse_float<T: num::Float + num::FromPrimitive + std::fmt::Display>(s: &str) -> Option<T> {
     parse_float_from_iter::<T>(&mut s.chars().peekable(), true)
 }
 
 #[test]
-fn test_parse_float() {
+fn test_parse_float_f32() {
+    assert_eq!(parse_float::<f32>(" -123.hello "), Some(-123f32));
+    assert_eq!(parse_float::<f32>(" -13.37.hello "), Some(-13.37f32));
+    assert_eq!(parse_float::<f32>(" -13.37e2.hello "), Some(-1337f32));
+    assert_eq!(parse_float::<f32>(" -13.37e-2.hello "), Some(-0.1337f32));
+    assert_eq!(
+        parse_float::<f32>(" -13.37e-16 "),
+        Some(-0.000000000000001337f32)
+    );
+    assert_eq!(parse_float::<f32>(" -1337.0e-30f32 "), Some(-1337.0e-30f32));
+    /*
+    assert_eq!(parse_float::<f32>(" -1337.0e-300f32 "), Some(-1337.0e-300f32));
+    */
+}
+
+#[test]
+fn test_parse_float_f64() {
     assert_eq!(parse_float::<f64>(" -123.hello "), Some(-123f64));
     assert_eq!(parse_float::<f64>(" -13.37.hello "), Some(-13.37f64));
     assert_eq!(parse_float::<f64>(" -13.37e2.hello "), Some(-1337f64));
@@ -161,4 +174,12 @@ fn test_parse_float() {
         parse_float::<f64>(" -13.37e-16 "),
         Some(-0.000000000000001337f64)
     );
+    assert_eq!(parse_float::<f64>(" -1337.0e-30f64 "), Some(-1337.0e-30f64));
+    /*
+    assert_eq!(parse_float::<f64>(" -1337.0e-300f64 "), Some(-1337.0e-300f64));
+    assert_eq!(
+        parse_float::<f32>(" -1337.0e-326f32 "),
+        Some(-1337.0e-326f32)
+    );
+    */
 }
