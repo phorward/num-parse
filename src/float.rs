@@ -115,25 +115,29 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Disp
                 }
             }
 
-            //println!("exp   ret = {}, neg = {}, exp = {}", ret, neg, exp);
+            if neg {
+                precision += exp;
+            } else if precision < exp {
+                precision = 0;
+            }
 
-            ret = ret
-                * ten.powi(if neg {
-                    precision += exp;
-                    -(exp as i32)
-                } else {
-                    exp as i32
-                });
+            // https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=db0408483b26c89505a8ec2be4f57f42
+            for _ in 0..exp {
+                if neg {
+                    ret = ret / ten;
+                }
+                else {
+                    ret = ret * ten;
+                }
+            }
         }
         _ => {}
     }
 
-    //println!("round ret = {}, precision = {}", ret, precision);
+    let factor = ten.powf(T::from_u32(precision).unwrap());
 
-    let precision = T::from_u32(precision).unwrap();
-    ret = (ret * ten.powf(precision)).round() / ten.powf(precision);
-
-    //println!("neg   ret = {}, neg = {}", ret, neg);
+    //println!("before ret = {}, precision = {} factor = {}", ret, precision, factor);
+    ret = (ret * factor).round() / factor;
 
     // Negate when necessary
     if neg {
@@ -141,6 +145,9 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Disp
     } else {
         Some(ret)
     }
+
+    // 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001337
+    // 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000013369999999999999
 }
 
 /// Parse float values from a &str, ignoring trailing whitespace.
@@ -175,8 +182,8 @@ fn test_parse_float_f64() {
         Some(-0.000000000000001337f64)
     );
     assert_eq!(parse_float::<f64>(" -1337.0e-30f64 "), Some(-1337.0e-30f64));
-    /*
     assert_eq!(parse_float::<f64>(" -1337.0e-300f64 "), Some(-1337.0e-300f64));
+    /*
     assert_eq!(
         parse_float::<f32>(" -1337.0e-326f32 "),
         Some(-1337.0e-326f32)
