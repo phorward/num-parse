@@ -182,7 +182,8 @@ fn test_parse_float_f64() {
         Some(-0.000000000000001337f64)
     );
     assert_eq!(parse_float::<f64>(" -1337.0e-30f64 "), Some(-1337.0e-30f64));
-    assert_eq!(parse_float::<f64>(" -1337.0e-300f64 "), Some(-1337.0e-300f64));
+    assert_eq!(parse_float::<f64>(" -1337.0e-296f64 "), Some(-1337.0e-296f64));  // OK
+    assert_eq!(parse_float::<f64>(" -1337.0e-297f64 "), Some(-1337.0e-297f64));  // FAIL
     /*
     assert_eq!(
         parse_float::<f32>(" -1337.0e-326f32 "),
