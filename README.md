@@ -5,11 +5,9 @@
 [![crates.io](https://img.shields.io/crates/v/num-parse)](https://crates.io/crates/num-parse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-Generic, JavaScript-like parseInt() functions for Rust.
+Generic, JavaScript-style parseInt() and parseFloat() functions for Rust.
 
-This crate is intended to provide a fast and generic `parseInt()`-like implementation for Rust, which mostly follows the specification described in the [MDN parseInt() documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt).
-
-Likewise in JavaScript, a `parseFloat()`-like implementation for float-types is planned as well, therefore the crate has been named `num-parse` already, althought it currently provides `parse_int()` and variative functions only.
+This crate is intended to provide a fast and generic `parseInt()`- and `parseFloat()`-like implementation for Rust, which mostly follows the specification described in the MDN documentation for [parseInt()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt) and [parseFloat()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseFloat).
 
 ## parse_int(), parse_uint()
 
@@ -33,3 +31,11 @@ assert_eq!(
     Some(3405691582usize)
 );
 ```
+
+## parse_float()
+
+TODO
+
+## PeekableIterator
+
+This crate is required by and implemented together with the [Tokay programming language](https://tokay.dev) to parse and calculate numerical values from a `PeekableIterator`-trait, which is also defined here. A JavaScript-like numerical parsing was thought to be useful for other projects as well.
