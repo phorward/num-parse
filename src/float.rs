@@ -6,7 +6,7 @@ use num;
 
 /** Parse float values from a PeekableIterator.
 
-Trailing `whitespace` is accepted, when set to `true`.
+Preceding `whitespace` is accepted, when set to `true`.
 */
 pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Display>(
     chars: &mut dyn PeekableIterator<Item = char>,
