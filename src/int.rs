@@ -1,4 +1,5 @@
-//! JavaScript-style parseInt-like parsing of numbers from strings in Rust.
+/** Generic, JavaScript-like parseInt() function for parsing integer numbers
+with custom bases from any character-emitting resource. */
 use super::*;
 use num;
 
