@@ -1,5 +1,5 @@
 // num-parse
-// Copyright © 2023 by Jan Max Meyer, Phorward Software Technologies.
+// Copyright © 2026 by Jan Max Meyer, Phorward Software Technologies.
 // Licensed under the MIT license. See LICENSE for more information.
 
 /*! num-parse

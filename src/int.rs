@@ -1,4 +1,4 @@
-/** Generic, JavaScript-like parseInt() function for parsing integer numbers
+/** Generic, JavaScript-parseInt()-like function for parsing integer numbers
 with custom bases from any character-emitting resource. */
 use super::*;
 use num;
@@ -42,11 +42,7 @@ fn parse_uint_internal<T: num::Integer + num::CheckedAdd + num::CheckedMul + num
         }
     }
 
-    if any {
-        Some(ret)
-    } else {
-        None
-    }
+    if any { Some(ret) } else { None }
 }
 
 /// Parse uint values from an iterator with a given radix.
@@ -106,11 +102,7 @@ pub fn parse_int_from_iter_with_radix<
     }
 
     if let Some(ret) = parse_uint_internal::<T>(chars, radix) {
-        if neg {
-            Some(-ret)
-        } else {
-            Some(ret)
-        }
+        if neg { Some(-ret) } else { Some(ret) }
     } else {
         None
     }
@@ -165,7 +157,7 @@ pub fn parse_int<
 #[test]
 fn test_parse_uint_i64() {
     assert_eq!(parse_uint::<i64>(" 123hello "), Some(123i64));
-    assert_eq!(parse_uint::<i64>(" 0xcafebabe "), Some(3405691582i64));
+    assert_eq!(parse_uint::<i64>(" 0xcafebabe "), Some(0xCAFEBABEi64));
     assert_eq!(parse_uint::<i64>(" 0 "), Some(0));
     assert_eq!(parse_uint::<i64>(" 0x "), None);
     assert_eq!(parse_uint::<i64>(" 0x1 "), Some(1));
@@ -177,11 +169,11 @@ fn test_parse_uint_i64() {
 fn test_parse_uint_base16_i64() {
     assert_eq!(
         parse_uint_with_radix::<i64>("CAFEBABE", 16),
-        Some(3405691582i64)
+        Some(0xCAFEBABEi64)
     );
     assert_eq!(
         parse_uint_with_radix::<i64>("  cafebabeyeah", 16),
-        Some(3405691582i64)
+        Some(0xCAFEBABEi64)
     );
     assert_eq!(parse_int_with_radix::<i64>("  0xcafebabeyeah", 16), Some(0));
 }
@@ -197,11 +189,11 @@ fn test_parse_int_i64() {
 fn test_parse_int_base16_i64() {
     assert_eq!(
         parse_int_with_radix::<i64>("  -CAFEBABE", 16),
-        Some(-3405691582i64)
+        Some(-0xCAFEBABEi64)
     );
     assert_eq!(
         parse_int_with_radix::<i64>("  -cafebabeyeah", 16),
-        Some(-3405691582i64)
+        Some(-0xCAFEBABEi64)
     );
     assert_eq!(
         parse_int_with_radix::<i64>("  -0xcafebabeyeah", 16),
@@ -223,6 +215,6 @@ fn test_readme() {
     );
     assert_eq!(
         parse_uint::<usize>(" 0xcafebabe triggers hex-mode parsing "),
-        Some(3405691582usize)
+        Some(0xCAFEBABE)
     );
 }

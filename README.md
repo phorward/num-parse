@@ -14,8 +14,6 @@ This crate is intended to provide a fast and generic `parseInt()`- and `parseFlo
 `parse_int()` and `parse_uint()` are generic interfaces to parse integers from string. Whitespace in front of the parsed number is being ignored, same as anything beyond a valid number.
 
 ```rust
-use num_parse::*;
-
 assert_eq!(parse_uint::<i32>("+123 as i32 "), Some(123i32));
 assert_eq!(parse_int::<i32>(" -123 as i32 "), Some(-123i32));
 assert_eq!(parse_uint::<i64>("+123 as i64 "), Some(123i64));
@@ -28,7 +26,7 @@ assert_eq!(
 );
 assert_eq!(
     parse_uint::<usize>(" 0xcafebabe triggers hex-mode parsing "),
-    Some(3405691582usize)
+    Some(0xCAFEBABE)
 );
 ```
 
