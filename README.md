@@ -11,7 +11,7 @@ This crate is intended to provide a fast and generic `parseInt()`- and `parseFlo
 
 ## parse_int(), parse_uint()
 
-`parse_int()` and `parse_uint()` are generic interfaces to parse integers from string. Whitespace in front of the parsed number is being ignored, same as anything beyond a valid number.
+`parse_int()` and `parse_uint()` are generic interfaces to parse integers from strings or character-emitting iterators. Whitespace in front of the parsed number is being ignored, same as anything beyond a valid number.
 
 ```rust
 assert_eq!(parse_uint::<i32>("+123 as i32 "), Some(123i32));
@@ -30,9 +30,24 @@ assert_eq!(
 );
 ```
 
-## parse_float()
+## parse_float(), parse_ufloat()
 
-TODO
+`parse_float()` and `parse_ufloat()` are generic interfaces to parse floating point numbers from strings or character-emitting iterators. Whitespace in front of the parsed number is being ignored, same as anything beyond a valid number.
+
+```rust
+assert_eq!(parse_ufloat::<f32>("+123.45 as f32 "), Some(123.45f32));
+assert_eq!(parse_float::<f32>(" -123.45 as f32 "), Some(-123.45f32));
+assert_eq!(parse_ufloat::<f64>("+123.45 as f64 "), Some(123.45f64));
+assert_eq!(parse_float::<f64>(" -123.45 as f64 "), Some(-123.45f64));
+assert_eq!(parse_ufloat::<f32>("0"), Some(0f32));
+assert_eq!(parse_float::<f64>(" 123 as f64 "), Some(123f64));
+
+assert_eq!(parse_float::<f64>(" - 1.0 is invalid "), None);
+assert_eq!(
+    parse_ufloat::<f64>(" -123.45 as f64, parse_float() not available for this value "),
+    None
+);
+```
 
 ## PeekableIterator
 

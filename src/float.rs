@@ -116,17 +116,7 @@ fn pow2<T: num::Float + num::FromPrimitive>(n: i64) -> T {
 }
 
 /** Convert a decimal number, given as an exact integer mantissa and a base-10
-    exponent (`mantissa * 10^exponent`), into the nearest representable `T`,
-    rounding to nearest with ties-to-even -- exactly like the Rust compiler's
-    own float literal parsing.
-
-    Unlike scaling by repeated multiplication/division, or by a single `powi`
-    of the *decimal* base 10 (which is not exactly representable in binary
-    floating point and therefore still rounds), all scaling here happens
-    either as exact big-integer arithmetic, or as multiplication by an exact
-    power of *two* (which never rounds, since it is just an exponent shift in
-    the binary float format). The only rounding step is the final, single
-    conversion of a `p`-bit integer mantissa into `T`.
+    exponent (`mantissa * 10^exponent`), into the nearest representable `T`.
 */
 fn decimal_to_float<T: num::Float + num::FromPrimitive>(mantissa: BigUint, exponent: i64) -> T {
     if mantissa.is_zero() {
@@ -201,40 +191,18 @@ fn decimal_to_float<T: num::Float + num::FromPrimitive>(mantissa: BigUint, expon
     T::from_u64(mantissa_bits_val.to_u64().unwrap()).unwrap() * pow2::<T>(bin_exp)
 }
 
-/** Parse float values from a PeekableIterator.
-
-Preceding `whitespace` is accepted, when set to `true`.
+/** Internal digit & exponent parser shared by `parse_ufloat_from_iter` and
+    `parse_float_from_iter`.
 */
-pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Display>(
+fn parse_ufloat_internal<T: num::Float + num::FromPrimitive>(
     chars: &mut dyn PeekableIterator<Item = char>,
-    whitespace: bool,
 ) -> Option<T> {
-    let mut neg = false;
     let mut any_digit = false;
 
     // Integer and decimal digits are accumulated into a single, exact,
     // arbitrary-precision mantissa (no digit is ever lost to overflow).
     let mut mantissa = BigUint::from(0u32);
     let mut frac_digits: i64 = 0;
-
-    // Skip over whitespace
-    if whitespace {
-        while let Some(ch) = chars.peek() {
-            if !ch.is_whitespace() {
-                break;
-            }
-
-            chars.next();
-        }
-    }
-
-    // Match sign
-    match chars.peek() {
-        Some(ch) if *ch == '-' || *ch == '+' => {
-            neg = chars.next().unwrap() == '-';
-        }
-        _ => {}
-    }
 
     // Integer part (optional)
     while let Some(dig) = chars.peek() {
@@ -248,12 +216,9 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Disp
         }
     }
 
-    // Decimal point (this *is* mandatory!)
-    match chars.peek() {
-        Some(ch) if *ch == '.' => {
-            chars.next();
-        }
-        _ => return None,
+    // Decimal point (optional)
+    if let Some('.') = chars.peek() {
+        chars.next();
     }
 
     // Decimal part (optional)
@@ -308,10 +273,71 @@ pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Disp
         _ => {}
     }
 
-    let ret = decimal_to_float::<T>(mantissa, exponent);
+    Some(decimal_to_float::<T>(mantissa, exponent))
+}
+
+/** Parse unsigned (non-negative) float values from a PeekableIterator.
+
+Preceding `whitespace` is accepted, when set to `true`. A leading `+` is
+accepted, but a `-` sign is rejected -- just like `parse_uint()` behaves
+compared to `parse_int()`.
+*/
+pub fn parse_ufloat_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Display>(
+    chars: &mut dyn PeekableIterator<Item = char>,
+    whitespace: bool,
+) -> Option<T> {
+    while let Some(ch) = chars.peek() {
+        if whitespace && ch.is_whitespace() {
+            chars.next();
+            continue;
+        } else if *ch == '+' {
+            chars.next();
+        }
+
+        break;
+    }
+
+    parse_ufloat_internal::<T>(chars)
+}
+
+/** Parse float values from a PeekableIterator.
+
+Preceding `whitespace` is accepted, when set to `true`.
+*/
+pub fn parse_float_from_iter<T: num::Float + num::FromPrimitive + std::fmt::Display>(
+    chars: &mut dyn PeekableIterator<Item = char>,
+    whitespace: bool,
+) -> Option<T> {
+    let mut neg = false;
+
+    // Skip over whitespace
+    if whitespace {
+        while let Some(ch) = chars.peek() {
+            if !ch.is_whitespace() {
+                break;
+            }
+
+            chars.next();
+        }
+    }
+
+    // Match sign
+    match chars.peek() {
+        Some(ch) if *ch == '-' || *ch == '+' => {
+            neg = chars.next().unwrap() == '-';
+        }
+        _ => {}
+    }
+
+    let ret = parse_ufloat_internal::<T>(chars)?;
 
     // Negate when necessary
     if neg { Some(-ret) } else { Some(ret) }
+}
+
+/// Parse unsigned (non-negative) float values from a &str, ignoring trailing whitespace.
+pub fn parse_ufloat<T: num::Float + num::FromPrimitive + std::fmt::Display>(s: &str) -> Option<T> {
+    parse_ufloat_from_iter::<T>(&mut s.chars().peekable(), true)
 }
 
 /// Parse float values from a &str, ignoring trailing whitespace.
@@ -330,6 +356,12 @@ fn test_parse_float_f32() {
         Some(-0.000000000000001337f32)
     );
     assert_eq!(parse_float::<f32>(" -1337.0e-30f32 "), Some(-1337.0e-30f32));
+
+    // The decimal point is optional
+    assert_eq!(parse_float::<f32>(" 123 "), Some(123f32));
+    assert_eq!(parse_float::<f32>(" -123 "), Some(-123f32));
+    assert_eq!(parse_float::<f32>(" 123e2 "), Some(12300f32));
+    assert_eq!(parse_float::<f32>(" 0 "), Some(0f32));
 }
 
 #[test]
@@ -366,5 +398,96 @@ fn test_parse_float_f64() {
     assert_eq!(
         parse_float::<f64>(" -1337.0e-301f64 "),
         Some(-1337.0e-301f64)
+    );
+
+    // The decimal point is optional
+    assert_eq!(parse_float::<f64>(" 123 "), Some(123f64));
+    assert_eq!(parse_float::<f64>(" -123 "), Some(-123f64));
+    assert_eq!(parse_float::<f64>(" 123e10 "), Some(123e10f64));
+    assert_eq!(parse_float::<f64>(" 0 "), Some(0f64));
+}
+
+#[test]
+fn test_parse_ufloat_f32() {
+    assert_eq!(parse_ufloat::<f32>(" 123.hello "), Some(123f32));
+    assert_eq!(parse_ufloat::<f32>(" +123.hello "), Some(123f32));
+    assert_eq!(parse_ufloat::<f32>(" 13.37.hello "), Some(13.37f32));
+    assert_eq!(parse_ufloat::<f32>(" 13.37e2.hello "), Some(1337f32));
+    assert_eq!(parse_ufloat::<f32>(" 13.37e-2.hello "), Some(0.1337f32));
+
+    // The decimal point is optional
+    assert_eq!(parse_ufloat::<f32>(" 123 "), Some(123f32));
+    assert_eq!(parse_ufloat::<f32>(" 0 "), Some(0f32));
+
+    // Unlike parse_float(), a leading '-' is rejected entirely.
+    assert_eq!(parse_ufloat::<f32>(" -123.45 "), None);
+    assert_eq!(parse_ufloat::<f32>(" -0.0 "), None);
+}
+
+#[test]
+fn test_parse_ufloat_f64() {
+    assert_eq!(parse_ufloat::<f64>(" 123.hello "), Some(123f64));
+    assert_eq!(parse_ufloat::<f64>(" +123.hello "), Some(123f64));
+    assert_eq!(parse_ufloat::<f64>(" 13.37.hello "), Some(13.37f64));
+    assert_eq!(parse_ufloat::<f64>(" 13.37e2.hello "), Some(1337f64));
+    assert_eq!(parse_ufloat::<f64>(" 13.37e-2.hello "), Some(0.1337f64));
+    assert_eq!(
+        parse_ufloat::<f64>(" 1337.0e-297f64 "),
+        Some(1337.0e-297f64)
+    );
+
+    // The decimal point is optional
+    assert_eq!(parse_ufloat::<f64>(" 123 "), Some(123f64));
+    assert_eq!(parse_ufloat::<f64>(" 0 "), Some(0f64));
+
+    // Unlike parse_float(), a leading '-' is rejected entirely.
+    assert_eq!(parse_ufloat::<f64>(" -123.45 "), None);
+    assert_eq!(parse_ufloat::<f64>(" -0.0 "), None);
+}
+
+#[test]
+fn test_parse_float_edge_cases() {
+    // Neither an integer nor a decimal part is present.
+    assert_eq!(parse_float::<f64>("."), None);
+    assert_eq!(parse_float::<f64>(""), None);
+    assert_eq!(parse_float::<f64>("   "), None);
+    assert_eq!(parse_float::<f64>("-."), None);
+    assert_eq!(parse_float::<f64>("-.e10"), None);
+
+    // An integer or a decimal part alone is enough.
+    assert_eq!(parse_float::<f64>(".5"), Some(0.5f64));
+    assert_eq!(parse_float::<f64>("5."), Some(5f64));
+    assert_eq!(parse_float::<f64>("-.5"), Some(-0.5f64));
+
+    // Leading '+' is accepted just like '-'.
+    assert_eq!(parse_float::<f64>("+1.5"), Some(1.5f64));
+
+    // Trailing garbage is ignored, just like leading whitespace.
+    assert_eq!(parse_float::<f64>("1.5xyz"), Some(1.5f64));
+
+    // Without whitespace skipping, leading whitespace is rejected.
+    assert_eq!(
+        parse_float_from_iter::<f64>(&mut " 1.5".chars().peekable(), false),
+        None
+    );
+    assert_eq!(
+        parse_float_from_iter::<f64>(&mut "1.5".chars().peekable(), false),
+        Some(1.5f64)
+    );
+}
+
+#[test]
+fn test_readme() {
+    assert_eq!(parse_ufloat::<f32>("+123.45 as f32 "), Some(123.45f32));
+    assert_eq!(parse_float::<f32>(" -123.45 as f32 "), Some(-123.45f32));
+    assert_eq!(parse_ufloat::<f64>("+123.45 as f64 "), Some(123.45f64));
+    assert_eq!(parse_float::<f64>(" -123.45 as f64 "), Some(-123.45f64));
+    assert_eq!(parse_ufloat::<f32>("0"), Some(0f32));
+    assert_eq!(parse_float::<f64>(" 123 as f64 "), Some(123f64));
+
+    assert_eq!(parse_float::<f64>(" - 1.0 is invalid "), None);
+    assert_eq!(
+        parse_ufloat::<f64>(" -123.45 as f64, parse_float() not available for this value "),
+        None
     );
 }
